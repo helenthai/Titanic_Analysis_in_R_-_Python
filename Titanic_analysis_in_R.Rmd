@@ -1,0 +1,154 @@
+---
+title: "Exploring Data : Titanic Analysis"
+author: "Huong Thai"
+date: "October 4th, 2016"
+output: rmarkdown::tufte_handout
+---
+
+# Collaborators: Emma Sprio
+
+```{r Setup, message=FALSE}
+# Load some helpful libraries
+library(tidyverse)
+```
+
+# \textbf{Exploring Data:}
+
+The sinking of the RMS Titanic[^titanic_ref] is a notable historical event. The RMS Titanic was a British passenger liner that sank in the North Atlantic Ocean in the early morning of 15 April 1912, after colliding with an iceberg during her maiden voyage from Southampton to New York City. Of the 2,224 passengers and crew aboard, more than 1,500 died in the sinking, making it one of the deadliest commercial peacetime maritime disasters in modern history.
+
+The disaster was greeted with worldwide shock and outrage at the huge loss of life and the regulatory and operational failures that had led to it. Public inquiries in Britain and the United States led to major improvements in maritime safety. One of their most important legacies was the establishment in 1914 of the International Convention for the Safety of Life at Sea (SOLAS)[^solas], which still governs maritime safety today. Additionally, several new wireless regulations were passed around the world in an effort to learn from the many missteps in wireless communications which could have saved many more passengers.
+
+The data we will explore in this lab were originally collected by the British Board of Trade in their investigation of the sinking. You can download these data in CSV format from Canvas. Researchers should note that there is not complete agreement among primary sources as to the exact numbers on board, rescued, or lost.
+
+## Formulate a Question:
+
+Today, we will consider two questions in our exploration:
+
+- Who were the Titanic passengers? What characteristics did they have?
+- What passenger characteristics or other factors are associated with survival?
+
+## Read and Inspect Data:
+
+Load the Titanic dataset into R. You can do so by executing the following code.
+
+```{r Read in Data, message=FALSE}
+setwd('D:/Huong_Projects Archive/2016-Fall/INFX 573/Lab exercise/Lab2')
+titanic <- read.csv("titanic.csv")
+titanic <- tbl_df(titanic) # transform the data into a data frame tbl
+```
+
+## Inspect our data
+
+```{r Inspect Data, message=TRUE}
+summary(titanic)
+str(titanic)
+head(titanic) # Look at the first few rows of the data frame
+tail(titanic) # Look at the last few rows of the data frame
+nrow(titanic)
+ncol(titanic)
+nchar(titanic)
+# Use the summary function to inspect variables
+sum(is.na(titanic$pclass))
+sum(is.na(titanic$survived))
+sum(is.na(titanic$name))
+sum(is.na(titanic$sex))
+sum(is.na(titanic$age))
+sum(is.na(titanic$sibsp))
+sum(is.na(titanic$parch))
+sum(is.na(titanic$ticket))
+sum(is.na(titanic$fare))
+sum(is.na(titanic$cabin))
+sum(is.na(titanic$embarked))
+sum(is.na(titanic$boat))
+sum(is.na(titanic$body))
+sum(is.na(titanic$home.dest))
+
+survivedpeople <- subset(titanic, survived == 1)
+dim(survivedpeople)
+str(survivedpeople)
+prop.table(table(titanic$survived))
+table(titanic$sex, titanic$survived)
+prop.table(table(titanic$sex, titanic$survived),margin = 1)
+```
+
+
+## Initial observations 
+
+First, data set lets us know we have 1309 observations, or passengers, to analyze here: 1309 entries, 0 to 1309.
+
+Next it shows us all of the columns and each of them holds information of the observations, such as the name, sex or age, etc. These colunms let us know how many values each of them contains. 
+Details: 14 colums show 14 variables ($ pclass, $ survived,  $ name, $ sex , $ age , $ sibsp ,  $ parch, $ ticket,  $ fare ,  $ cabin,  $ embarked, $ boat, $ body,  $ home.dest)
+
+In general, it can be seen that the dataset contains various characteristics about individual passengers inluding their name, sex, and age. It can also noticed that there is a variable called 'survived' which is likely to contain data about whether that person survived after the crash. We also notice that some variables have missing data, represented by NAs. In details: 
+- There are some variables appearing to have a lot of missing values: Age (263 counts), Fare (1 count), Body (1188 count)
+- Within 1309 observations (the survived people is set value ==1 in the dataset) there were 500 survived people. It means there was more than one-third of passengers survived. We also can see that the proporation of the survived female is much higher than it of the male.
+
+Review the type of variables, I have some points to improve the correctness of the dataset. 
+1. Variable "survived": we can use logical type so we can make sure that there are only two value True or False, instead of "int" type which provides more than two options. 
+2. Variable "age": it should be set to be "int" instead of "dbl" or "num". "int" type only allow integer, however in this dataset, the age value can be any type of numeric such as 22.5. The age should not be fomatted in so-called decimal
+3. Variable "body": There are many missing values so it should be removed from the dataset. 
+4. Varible "boat": There are many missing values and unconsistent code like number or character in this column. So I recommend to clear it out from the dataset to make the dataset non-distracted.
+
+The summary function also reveals that the 'survived' variable is treated as a numeric variable in R. This characteristic is more appropriately a categorical variable and thereforeit will be re-casted it as a factor. The same goes for 'pclass'.
+
+```{r}
+# Re-cast categorical variables to be factor
+# data types
+titanic$pclass <- as.factor(titanic$pclass)
+titanic$survived <- as.factor(titanic$survived)
+```
+
+## Easy Solution:
+
+I will create a basic visualization to help us understand the distributions of age for Titanic passengers.
+
+```{r, fig.cap = "Age of Passenders Aboard the Titanic", message=FALSE, warning=FALSE}
+ggplot(data = titanic, aes(age)) + 
+  geom_histogram(fill="blue")
+```
+
+We might go further to look at how passenger age might be related to survival.
+
+## Figure to show age distribution by survival
+
+```{r, fig.cap="Survival and Passenger Age",message=FALSE, warning=FALSE}
+ggplot(data = titanic, aes(age, survived)) + 
+  geom_point(size= 2, alpha= 1, color="red")
+```
+
+This simple visualization is good at showing the number of survival and non-survival. I can interpret the difference in age distribution between 2 variables. However, I can't easily see the correlation between Age and Survival. In other words, I don't see which age had the highest survival count. In addition, the axis X distracted my attention to the variable survived. 
+
+I come up to produce a new figure that you think does a better job of helping you explore the association between passenger age and survival.
+
+```{r, fig.cap="Survival and Passenger Age",message=FALSE, warning=FALSE}
+ggplot(data = titanic, aes(age, survived)) +  geom_bar(stat = "identity")
+```
+
+I decide to use bar chart to compare the number of survival in age categories. Because I can see which age group had the best chance to survive. 
+
+However, these figures does not do a good job of displaying the data. In particular, it does not help us understand the distribution of ages by survival. A better plot would be a boxplot to show the age distribution for each value of the survival variable.
+
+```{r}
+ggplot(data = titanic, aes(survived, age)) + geom_boxplot()
+```
+
+We want to look at the relationship between survival and passenger class to determine if evidence suggests high surivial rates for upper class passengers. In the following figure we see not only how many passengers fall into each class, relatively, but also what proportion survived. Data suggests that passengers in 1st and 2nd class cabins had higher rates of surivival, compared the 3rd class passengers.
+
+```{r}
+mosaicplot(titanic$pclass ~ titanic$survived,
+main = "Passenger Fate by Traveling Class",
+shade = FALSE, color = TRUE, xlab = "Pclass", ylab = "Survived")
+```
+
+From this visualization,  we might want to build a statistical model to identify the relative influence of each factor on survival or predict the survival of a passenger.
+
+[^titanic_ref]: https://en.wikipedia.org/wiki/RMS_Titanic
+[^solas]: https://en.wikipedia.org/wiki/International_Convention_for_the_Safety_of_Life_at_Sea
+
+
+
+
+
+
+
+
